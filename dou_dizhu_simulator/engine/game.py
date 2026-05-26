@@ -1,7 +1,7 @@
 import random
 from typing import List, Optional, Tuple
 from ..game.card import Card, make_deck, ACE_OF_SPADES, THREE_OF_HEARTS
-from ..game.combination import Combination, get_all_combinations
+from ..game.combination import Combination
 from ..game.rules import get_legal_moves
 from ..agents.base import PlayerPolicy
 
@@ -34,10 +34,7 @@ class GameRound:
         while True:
             hand = hands[current]
 
-            if last_combo is None:
-                legal = get_all_combinations(hand)
-            else:
-                legal = get_legal_moves(hand, last_combo)
+            legal = get_legal_moves(hand, last_combo)
 
             move = policies[current].choose_move(hand, legal, last_combo)
 

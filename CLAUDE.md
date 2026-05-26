@@ -102,7 +102,7 @@ We will implement and compare **at least two models**:
 
 - **Combinatorial dependencies:** One extra card enables longer straights, more consecutive pairs, more bombs—nonlinear effects
 - **Sequencing dynamics:** The order in which cards appear matters; control over turns matters
-- **Flexibility under constraints:** A hand with 18 flexible cards is not proportionally stronger than 17 rigid cards
+- **Flexibility under constraints:** Hand composition matters; combinatorial strength is nonlinear in card count
 - **Endgame efficiency:** Fewer dead cards when you need to close out a game
 
 ### What We're Explicitly NOT Doing (And Why)
@@ -209,7 +209,7 @@ A successful implementation will:
 4. ✅ **Report credible statistics**
    - Win rates for each player
    - 95% confidence intervals
-   - Hypothesis test result (is 18-card advantage significant?)
+   - Hypothesis test result (does black gun player win at 1/3?)
    - Interpretable summary
 
 5. ✅ **Be modular and extensible**
@@ -252,7 +252,7 @@ A successful implementation will:
 
 ### Policy Design
 - **Policies must be deterministic.** Given the same hand state and game state, they must always return the same move.
-- **Both policies must be identical across all three players.** The 18-card advantage is the only variable.
+- **Both policies must be identical across all three players.** The Ace of Spades label is the only structural variable.
 - The heuristic policy should be simple and interpretable. Avoid over-engineering.
 
 ### Statistical Rigor

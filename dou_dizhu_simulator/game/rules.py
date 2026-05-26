@@ -1,5 +1,5 @@
 from typing import List, Optional
-from .card import Card, Rank
+from .card import Card
 from .combination import Combination, CombType, get_all_combinations
 
 
