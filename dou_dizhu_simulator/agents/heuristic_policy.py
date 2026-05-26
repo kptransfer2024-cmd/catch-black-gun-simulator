@@ -14,6 +14,8 @@ class HeuristicPolicy(PlayerPolicy):
         legal_moves: List[Combination],
         last_combo: Optional[Combination],
         opponent_hand_sizes: Optional[List[int]] = None,
+        ace_revealed: bool = False,
+        last_player_idx: Optional[int] = None,
     ) -> Optional[Combination]:
         if not legal_moves:
             return None

@@ -28,6 +28,7 @@ class GameRound:
         hands, current = self.deal_cards()
         last_combo: Optional[Combination] = None
         last_player = current
+        ace_revealed = False
         passes = 0
         turns = 0
 
@@ -45,7 +46,9 @@ class GameRound:
             hand = hands[current]
             legal = get_legal_moves(hand, last_combo)
             opp_sizes = [len(hands[(current + 1) % 3]), len(hands[(current + 2) % 3])]
-            move = policies[current].choose_move(hand, legal, last_combo, opp_sizes)
+            move = policies[current].choose_move(
+                hand, legal, last_combo, opp_sizes, ace_revealed, last_player
+            )
 
             if trace:
                 trick_str = f"(trick: {last_combo})" if last_combo else "(free lead)"
@@ -67,6 +70,8 @@ class GameRound:
                 last_combo = move
                 last_player = current
                 passes = 0
+                if current == 0 and not ace_revealed:
+                    ace_revealed = ACE_OF_SPADES in move.cards
 
                 if not hand:
                     if trace:

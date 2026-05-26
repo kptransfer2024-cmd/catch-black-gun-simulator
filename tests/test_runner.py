@@ -54,7 +54,8 @@ def test_game_passes_opponent_hand_sizes():
     class RecordingPolicy(PlayerPolicy):
         def __init__(self, inner):
             self._inner = inner
-        def choose_move(self, hand, legal_moves, last_combo, opponent_hand_sizes=None):
+        def choose_move(self, hand, legal_moves, last_combo, opponent_hand_sizes=None,
+                        ace_revealed=False, last_player_idx=None):
             sizes_received.append(opponent_hand_sizes)
             return self._inner.choose_move(hand, legal_moves, last_combo)
 

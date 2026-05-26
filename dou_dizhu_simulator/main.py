@@ -4,6 +4,8 @@ from .agents.random_policy import RandomPolicy
 from .agents.heuristic_policy import HeuristicPolicy
 from .agents.combo_policy import ComboAwarePolicy
 from .agents.tactical_policy import TacticalPolicy
+from .agents.coalition_policy import CoalitionPolicy
+from .agents.coalition_refined_policy import CoalitionRefinedPolicy
 from .experiments.runner import MonteCarloSimulator
 from .experiments.analysis import run_analysis
 
@@ -25,6 +27,22 @@ def _combo_factory(_rng: random.Random) -> ComboAwarePolicy:
 
 def _tactical_factory(_rng: random.Random) -> TacticalPolicy:
     return TacticalPolicy()
+
+
+def _coalition_factories():
+    return [
+        lambda _rng: TacticalPolicy(),
+        lambda _rng: CoalitionPolicy(1),
+        lambda _rng: CoalitionPolicy(2),
+    ]
+
+
+def _coalition_refined_factories():
+    return [
+        lambda _rng: TacticalPolicy(),
+        lambda _rng: CoalitionRefinedPolicy(1),
+        lambda _rng: CoalitionRefinedPolicy(2),
+    ]
 
 
 def main() -> None:
@@ -65,6 +83,18 @@ def main() -> None:
         args.games, seed=args.seed, verbose=True
     )
     run_analysis(tactical_results, "Model 3: Tactical Policy")
+
+    print("Running Model 4: Coalition Policy...")
+    coalition_results = MonteCarloSimulator(_coalition_factories()).run(
+        args.games, seed=args.seed, verbose=True
+    )
+    run_analysis(coalition_results, "Model 4: Coalition Policy")
+
+    print("Running Model 5: Coalition Refined Policy...")
+    coalition_refined_results = MonteCarloSimulator(_coalition_refined_factories()).run(
+        args.games, seed=args.seed, verbose=True
+    )
+    run_analysis(coalition_refined_results, "Model 5: Coalition Refined Policy")
 
 
 if __name__ == "__main__":

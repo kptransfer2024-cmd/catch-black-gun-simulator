@@ -20,6 +20,8 @@ from dou_dizhu_simulator.agents.random_policy import RandomPolicy
 from dou_dizhu_simulator.agents.heuristic_policy import HeuristicPolicy
 from dou_dizhu_simulator.agents.combo_policy import ComboAwarePolicy
 from dou_dizhu_simulator.agents.tactical_policy import TacticalPolicy
+from dou_dizhu_simulator.agents.coalition_policy import CoalitionPolicy
+from dou_dizhu_simulator.agents.coalition_refined_policy import CoalitionRefinedPolicy
 from dou_dizhu_simulator.experiments.runner import MonteCarloSimulator
 from dou_dizhu_simulator.experiments.analysis import run_analysis
 
@@ -30,6 +32,10 @@ def make_policies(policy_type: str, rng: random.Random):
         return [ComboAwarePolicy() for _ in range(3)]
     if policy_type == "tactical":
         return [TacticalPolicy() for _ in range(3)]
+    if policy_type == "coalition":
+        return [TacticalPolicy(), CoalitionPolicy(1), CoalitionPolicy(2)]
+    if policy_type == "refined":
+        return [TacticalPolicy(), CoalitionRefinedPolicy(1), CoalitionRefinedPolicy(2)]
     return [RandomPolicy(random.Random(rng.random())) for _ in range(3)]
 
 
@@ -58,6 +64,18 @@ def mini_sim(seed: int, n_games: int, policy_type: str) -> None:
         factory = lambda _rng: ComboAwarePolicy()
     elif policy_type == "tactical":
         factory = lambda _rng: TacticalPolicy()
+    elif policy_type == "coalition":
+        factory = [
+            lambda _rng: TacticalPolicy(),
+            lambda _rng: CoalitionPolicy(1),
+            lambda _rng: CoalitionPolicy(2),
+        ]
+    elif policy_type == "refined":
+        factory = [
+            lambda _rng: TacticalPolicy(),
+            lambda _rng: CoalitionRefinedPolicy(1),
+            lambda _rng: CoalitionRefinedPolicy(2),
+        ]
     else:
         factory = lambda rng: RandomPolicy(rng)
 
@@ -80,6 +98,10 @@ def main():
                         help="Use combo-aware policy instead of heuristic")
     parser.add_argument("--tactical", action="store_true",
                         help="Use tactical policy (Model 3)")
+    parser.add_argument("--coalition", action="store_true",
+                        help="Use coalition policy (Model 4): P1/P2 team up against P0")
+    parser.add_argument("--refined", action="store_true",
+                        help="Use coalition refined policy (Model 5): priority + tempo + bombs")
     parser.add_argument("--games", type=int, default=1,
                         help="Number of games to trace (default: 1)")
     parser.add_argument("--mini", type=int, default=10,
@@ -95,7 +117,11 @@ def main():
     else:
         seed = 42
 
-    if args.tactical:
+    if args.refined:
+        policy_type = "refined"
+    elif args.coalition:
+        policy_type = "coalition"
+    elif args.tactical:
         policy_type = "tactical"
     elif args.combo:
         policy_type = "combo"
@@ -114,13 +140,25 @@ def main():
         print(f"\n{'='*60}")
         print(f"  QUICK COMPARISON  ({args.mini} games each)")
         print(f"{'='*60}")
-        for ptype in ("random", "heuristic", "combo", "tactical"):
+        for ptype in ("random", "heuristic", "combo", "tactical", "coalition", "refined"):
             if ptype == "heuristic":
                 factory = lambda _r: HeuristicPolicy()
             elif ptype == "combo":
                 factory = lambda _r: ComboAwarePolicy()
             elif ptype == "tactical":
                 factory = lambda _r: TacticalPolicy()
+            elif ptype == "coalition":
+                factory = [
+                    lambda _r: TacticalPolicy(),
+                    lambda _r: CoalitionPolicy(1),
+                    lambda _r: CoalitionPolicy(2),
+                ]
+            elif ptype == "refined":
+                factory = [
+                    lambda _r: TacticalPolicy(),
+                    lambda _r: CoalitionRefinedPolicy(1),
+                    lambda _r: CoalitionRefinedPolicy(2),
+                ]
             else:
                 factory = lambda r: RandomPolicy(r)
             results = MonteCarloSimulator(factory).run(args.mini, seed=seed)

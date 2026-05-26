@@ -24,8 +24,12 @@ PolicyFactory = Callable[[random.Random], PlayerPolicy]
 
 
 class MonteCarloSimulator:
-    def __init__(self, policy_factory: PolicyFactory) -> None:
-        self._factory = policy_factory
+    def __init__(self, factory_or_factories) -> None:
+        if callable(factory_or_factories):
+            self._factories = [factory_or_factories] * 3
+        else:
+            self._factories = list(factory_or_factories)
+            assert len(self._factories) == 3
 
     def run(self, n_games: int, seed: int, verbose: bool = False) -> SimResults:
         rng = random.Random(seed)
@@ -35,7 +39,7 @@ class MonteCarloSimulator:
 
         for i in range(n_games):
             game_rng = random.Random(rng.random())
-            policies = [self._factory(random.Random(rng.random())) for _ in range(3)]
+            policies = [self._factories[j](random.Random(rng.random())) for j in range(3)]
             winner, turns = GameRound(game_rng).play(policies)
             wins[winner] += 1
             total_turns += turns
