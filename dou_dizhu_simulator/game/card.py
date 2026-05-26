@@ -38,7 +38,7 @@ THREE_OF_HEARTS = Card(Rank.THREE, 'H')
 
 def make_deck() -> List[Card]:
     deck = []
-    for rank_val in range(3, 16):  # 3 through 2
+    for rank_val in range(3, 16):  # Rank.THREE through Rank.TWO (values 3–15)
         for suit in ('S', 'H', 'D', 'C'):
             deck.append(Card(Rank(rank_val), suit))
     deck.append(Card(Rank.SMALL_JOKER, 'J'))
