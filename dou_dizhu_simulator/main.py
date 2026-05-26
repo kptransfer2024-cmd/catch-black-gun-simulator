@@ -22,12 +22,12 @@ def main() -> None:
 
     print("Running Model 0: Random Policy...")
     random_sim = MonteCarloSimulator(_random_factory)
-    random_results = random_sim.run(N_GAMES, seed=SEED)
+    random_results = random_sim.run(N_GAMES, seed=SEED, verbose=True)
     run_analysis(random_results, "Model 0: Random Policy")
 
     print("Running Model 1: Heuristic Policy...")
     heuristic_sim = MonteCarloSimulator(_heuristic_factory)
-    heuristic_results = heuristic_sim.run(N_GAMES, seed=SEED)
+    heuristic_results = heuristic_sim.run(N_GAMES, seed=SEED, verbose=True)
     run_analysis(heuristic_results, "Model 1: Heuristic Policy")
 
 

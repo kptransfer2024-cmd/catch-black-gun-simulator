@@ -27,16 +27,28 @@ class MonteCarloSimulator:
     def __init__(self, policy_factory: PolicyFactory) -> None:
         self._factory = policy_factory
 
-    def run(self, n_games: int, seed: int) -> SimResults:
+    def run(self, n_games: int, seed: int, verbose: bool = False) -> SimResults:
         rng = random.Random(seed)
         wins = [0, 0, 0]
         total_turns = 0
+        report_every = max(1, n_games // 10)
 
-        for _ in range(n_games):
+        for i in range(n_games):
             game_rng = random.Random(rng.random())
             policies = [self._factory(random.Random(rng.random())) for _ in range(3)]
             winner, turns = GameRound(game_rng).play(policies)
             wins[winner] += 1
             total_turns += turns
+
+            if verbose and (i + 1) % report_every == 0:
+                done = i + 1
+                bg_rate = wins[0] / done
+                p1_rate = wins[1] / done
+                p2_rate = wins[2] / done
+                print(
+                    f"  {done:>7,}/{n_games:,}  ({done/n_games*100:5.1f}%)  "
+                    f"| black gun: {bg_rate:.3f}  P1: {p1_rate:.3f}  P2: {p2_rate:.3f}",
+                    flush=True,
+                )
 
         return SimResults(n_games=n_games, wins=wins, total_turns=total_turns)
