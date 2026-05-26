@@ -116,3 +116,179 @@ def test_high_pair_protection_only_for_pair_trick():
     last = Combination(CombType.SINGLE, (card(5,'H'),), 5)
     p = _get_protected_cards(hand, last)
     assert len(p) == 0
+
+
+from dou_dizhu_simulator.agents.combo_policy import ComboAwarePolicy
+from dou_dizhu_simulator.game.rules import get_legal_moves
+
+
+def policy() -> ComboAwarePolicy:
+    return ComboAwarePolicy()
+
+
+# ── LEADING FREELY ────────────────────────────────────────────────────────
+
+def test_lead_straight_preferred_over_pair():
+    hand = [card(3,'H'), card(4,'S'), card(5,'C'), card(6,'D'), card(7,'S'),
+            card(9,'H'), card(9,'S'), card(13,'D'), card(14,'C')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.STRAIGHT
+
+
+def test_lead_longest_straight_first():
+    hand = [card(r,'H') for r in range(3, 10)] + [card(14,'S'), card(14,'H')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.STRAIGHT
+    assert len(move.cards) == 7
+
+
+def test_lead_lower_rank_straight_first_same_length():
+    hand = ([card(r,'H') for r in [3,4,5,6,7]] +
+            [card(r,'S') for r in [9,10,11,12,13]] +
+            [card(14,'C')])
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.STRAIGHT
+    assert move.rank_value == 7   # top card of [3-7] = 7
+
+
+def test_lead_triple_pair_over_triple_single():
+    hand = [card(5,'H'), card(5,'S'), card(5,'C'),
+            card(9,'H'), card(9,'S'),
+            card(3,'D'), card(4,'D'), card(7,'D'), card(8,'D'), card(13,'D')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.TRIPLE_PAIR
+
+
+def test_lead_triple_single_over_plain_triple():
+    hand = [card(5,'H'), card(5,'S'), card(5,'C'),
+            card(3,'D'), card(4,'D'), card(7,'D'), card(8,'D'),
+            card(11,'S'), card(13,'H')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.TRIPLE_SINGLE
+
+
+def test_lead_pair_over_single():
+    hand = [card(3,'H'), card(3,'S'),
+            card(7,'C'), card(9,'D'), card(12,'H'), card(14,'S'), card(14,'C'), card(15,'D')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.PAIR
+    assert move.rank_value == 3
+
+
+def test_lead_consecutive_pairs_over_standalone_pair():
+    hand = [card(3,'H'), card(3,'S'), card(4,'D'), card(4,'C'),
+            card(5,'H'), card(5,'D'), card(13,'H'), card(13,'S'), card(9,'C')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.CONSECUTIVE_PAIRS
+
+
+def test_lead_lowest_single_when_no_combos():
+    # All different ranks, no pairs, no straights — falls back to singles
+    hand = [card(3,'H'), card(5,'S'), card(7,'C'), card(9,'D'), card(11,'H'), card(13,'S')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.SINGLE
+    assert move.rank_value == 3
+
+
+# ── FOLLOWING A TRICK ─────────────────────────────────────────────────────
+
+def test_follow_plays_isolated_single_not_straight_card():
+    # Hand [3,4,5,6,7,A]; opponent played SINGLE[6H]
+    # 7 is in protected straight [34567]; A is isolated -> play A
+    last = Combination(CombType.SINGLE, (card(6,'H'),), 6)
+    hand = [card(3,'H'), card(4,'S'), card(5,'C'), card(6,'D'), card(7,'S'), card(14,'C')]
+    legal = get_legal_moves(hand, last)
+    move = policy().choose_move(hand, legal, last)
+    assert move is not None
+    assert move.cards[0] == card(14,'C')
+
+
+def test_follow_pass_to_protect_straight():
+    # Hand [3,4,5,6,7]; opponent played SINGLE[6H]
+    # Only 7 can beat it, but 7 is in protected straight -> PASS
+    last = Combination(CombType.SINGLE, (card(6,'H'),), 6)
+    hand = [card(3,'H'), card(4,'S'), card(5,'C'), card(6,'D'), card(7,'S')]
+    legal = get_legal_moves(hand, last)
+    move = policy().choose_move(hand, legal, last)
+    assert move is None
+
+
+def test_follow_pass_high_pair_vs_weak_pair():
+    # Hand [KH, KS, 3D]; opponent played PAIR[55] (rank 5 <= 7) -> KK soft-protected -> PASS
+    last = Combination(CombType.PAIR, (card(5,'H'), card(5,'S')), 5)
+    hand = [card(13,'H'), card(13,'S'), card(3,'D')]
+    legal = get_legal_moves(hand, last)
+    move = policy().choose_move(hand, legal, last)
+    assert move is None
+
+
+def test_follow_play_high_pair_vs_strong_trick():
+    # Hand [KH, KS, 3D]; opponent played PAIR[88] (rank 8 > 7) -> KK NOT protected -> play it
+    last = Combination(CombType.PAIR, (card(8,'H'), card(8,'S')), 8)
+    hand = [card(13,'H'), card(13,'S'), card(3,'D')]
+    legal = get_legal_moves(hand, last)
+    move = policy().choose_move(hand, legal, last)
+    assert move is not None
+    assert move.type == CombType.PAIR
+    assert move.rank_value == 13
+
+
+def test_follow_prefers_standalone_pair_over_consec_pair_run():
+    # consec pairs [33,44,55] all protected; KK standalone, rank 13 > 8 -> plays KK
+    last = Combination(CombType.PAIR, (card(8,'H'), card(8,'S')), 8)
+    hand = [card(3,'H'), card(3,'S'), card(4,'D'), card(4,'C'),
+            card(5,'H'), card(5,'D'), card(13,'H'), card(13,'S'), card(9,'C')]
+    legal = get_legal_moves(hand, last)
+    move = policy().choose_move(hand, legal, last)
+    assert move is not None
+    assert move.type == CombType.PAIR
+    assert move.rank_value == 13
+
+
+def test_follow_pass_when_all_pairs_in_consec_run():
+    # consec pairs [77,88,99]; opponent played PAIR[66] -> all responses protected -> PASS
+    last = Combination(CombType.PAIR, (card(6,'H'), card(6,'S')), 6)
+    hand = [card(7,'H'), card(7,'S'), card(8,'D'), card(8,'C'),
+            card(9,'H'), card(9,'D'), card(3,'C')]
+    legal = get_legal_moves(hand, last)
+    move = policy().choose_move(hand, legal, last)
+    assert move is None
+
+
+def test_follow_pass_preserves_bombs():
+    # Following a BOMB: only JOKER_BOMB can beat it; non_bombs is empty -> PASS
+    from dou_dizhu_simulator.game.card import Card, Rank
+    sj = Card(Rank.SMALL_JOKER, 'J')
+    bj = Card(Rank.BIG_JOKER, 'J')
+    last = Combination(CombType.BOMB, (card(9,'H'), card(9,'S'), card(9,'C'), card(9,'D')), 9)
+    hand = [sj, bj, card(3,'H'), card(4,'S'), card(5,'C'), card(6,'D')]
+    legal = get_legal_moves(hand, last)
+    move = policy().choose_move(hand, legal, last)
+    assert move is None
+
+
+# ── ENDGAME ───────────────────────────────────────────────────────────────
+
+def test_endgame_maximises_card_count():
+    # Hand <= 5; plays move with most cards
+    hand = [card(3,'H'), card(3,'S'), card(4,'D'), card(4,'C'), card(5,'H')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert len(move.cards) >= 2
+
+
+def test_endgame_plays_combo_over_single():
+    # Hand [3,3,K]; plays pair[33] not single
+    hand = [card(3,'H'), card(3,'S'), card(13,'D')]
+    legal = get_legal_moves(hand, None)
+    move = policy().choose_move(hand, legal, None)
+    assert move.type == CombType.PAIR
+    assert len(move.cards) == 2
