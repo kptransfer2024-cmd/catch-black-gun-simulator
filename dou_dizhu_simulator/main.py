@@ -3,6 +3,7 @@ import random
 from .agents.random_policy import RandomPolicy
 from .agents.heuristic_policy import HeuristicPolicy
 from .agents.combo_policy import ComboAwarePolicy
+from .agents.tactical_policy import TacticalPolicy
 from .experiments.runner import MonteCarloSimulator
 from .experiments.analysis import run_analysis
 
@@ -22,11 +23,21 @@ def _combo_factory(_rng: random.Random) -> ComboAwarePolicy:
     return ComboAwarePolicy()
 
 
+def _tactical_factory(_rng: random.Random) -> TacticalPolicy:
+    return TacticalPolicy()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--games", type=int, default=N_GAMES)
+    parser.add_argument("--random-seed", action="store_true",
+                        help="Use a random seed instead of the fixed default")
     args = parser.parse_args()
+
+    if args.random_seed:
+        import random as _random
+        args.seed = _random.randint(0, 999_999)
 
     print("Catch-the-Black-Gun Monte Carlo Simulator")
     print(f"Running {args.games:,} games per experiment (seed={args.seed})\n")
@@ -48,6 +59,12 @@ def main() -> None:
         args.games, seed=args.seed, verbose=True
     )
     run_analysis(combo_results, "Model 2: Combo-Aware Policy")
+
+    print("Running Model 3: Tactical Policy...")
+    tactical_results = MonteCarloSimulator(_tactical_factory).run(
+        args.games, seed=args.seed, verbose=True
+    )
+    run_analysis(tactical_results, "Model 3: Tactical Policy")
 
 
 if __name__ == "__main__":

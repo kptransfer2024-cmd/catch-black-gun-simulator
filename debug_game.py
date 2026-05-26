@@ -19,6 +19,7 @@ from dou_dizhu_simulator.engine.game import GameRound
 from dou_dizhu_simulator.agents.random_policy import RandomPolicy
 from dou_dizhu_simulator.agents.heuristic_policy import HeuristicPolicy
 from dou_dizhu_simulator.agents.combo_policy import ComboAwarePolicy
+from dou_dizhu_simulator.agents.tactical_policy import TacticalPolicy
 from dou_dizhu_simulator.experiments.runner import MonteCarloSimulator
 from dou_dizhu_simulator.experiments.analysis import run_analysis
 
@@ -27,6 +28,8 @@ def make_policies(policy_type: str, rng: random.Random):
         return [HeuristicPolicy() for _ in range(3)]
     if policy_type == "combo":
         return [ComboAwarePolicy() for _ in range(3)]
+    if policy_type == "tactical":
+        return [TacticalPolicy() for _ in range(3)]
     return [RandomPolicy(random.Random(rng.random())) for _ in range(3)]
 
 
@@ -53,6 +56,8 @@ def mini_sim(seed: int, n_games: int, policy_type: str) -> None:
         factory = lambda _rng: HeuristicPolicy()
     elif policy_type == "combo":
         factory = lambda _rng: ComboAwarePolicy()
+    elif policy_type == "tactical":
+        factory = lambda _rng: TacticalPolicy()
     else:
         factory = lambda rng: RandomPolicy(rng)
 
@@ -73,6 +78,8 @@ def main():
     parser.add_argument("--heuristic", action="store_true")
     parser.add_argument("--combo", action="store_true",
                         help="Use combo-aware policy instead of heuristic")
+    parser.add_argument("--tactical", action="store_true",
+                        help="Use tactical policy (Model 3)")
     parser.add_argument("--games", type=int, default=1,
                         help="Number of games to trace (default: 1)")
     parser.add_argument("--mini", type=int, default=10,
@@ -88,7 +95,9 @@ def main():
     else:
         seed = 42
 
-    if args.combo:
+    if args.tactical:
+        policy_type = "tactical"
+    elif args.combo:
         policy_type = "combo"
     elif args.heuristic:
         policy_type = "heuristic"
@@ -105,11 +114,13 @@ def main():
         print(f"\n{'='*60}")
         print(f"  QUICK COMPARISON  ({args.mini} games each)")
         print(f"{'='*60}")
-        for ptype in ("random", "heuristic", "combo"):
+        for ptype in ("random", "heuristic", "combo", "tactical"):
             if ptype == "heuristic":
                 factory = lambda _r: HeuristicPolicy()
             elif ptype == "combo":
                 factory = lambda _r: ComboAwarePolicy()
+            elif ptype == "tactical":
+                factory = lambda _r: TacticalPolicy()
             else:
                 factory = lambda r: RandomPolicy(r)
             results = MonteCarloSimulator(factory).run(args.mini, seed=seed)
