@@ -11,5 +11,6 @@ class PlayerPolicy(ABC):
         hand: List[Card],
         legal_moves: List[Combination],
         last_combo: Optional[Combination],
+        opponent_hand_sizes: Optional[List[int]] = None,
     ) -> Optional[Combination]:
-        """Return a Combination to play, or None to pass. Always play if legal_moves is non-empty."""
+        """Return a Combination to play, or None to pass."""

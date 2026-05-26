@@ -44,7 +44,8 @@ class GameRound:
         while True:
             hand = hands[current]
             legal = get_legal_moves(hand, last_combo)
-            move = policies[current].choose_move(hand, legal, last_combo)
+            opp_sizes = [len(hands[(current + 1) % 3]), len(hands[(current + 2) % 3])]
+            move = policies[current].choose_move(hand, legal, last_combo, opp_sizes)
 
             if trace:
                 trick_str = f"(trick: {last_combo})" if last_combo else "(free lead)"
