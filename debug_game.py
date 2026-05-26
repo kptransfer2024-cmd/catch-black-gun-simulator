@@ -2,10 +2,11 @@
 Debug script: inspect game traces and run mini-simulations.
 
 Usage:
-  python debug_game.py              # trace 1 random game + 10-game mini-sim
-  python debug_game.py --seed 7     # specific seed
-  python debug_game.py --heuristic  # use heuristic policy instead
-  python debug_game.py --games 3    # trace first N games
+  python debug_game.py                   # trace 1 random game + 10-game mini-sim
+  python debug_game.py --seed 7          # specific seed (reproducible)
+  python debug_game.py --random-seed     # fresh seed every run (varied output)
+  python debug_game.py --heuristic       # use heuristic policy instead
+  python debug_game.py --games 3         # trace first N games
 """
 import argparse
 import random
@@ -61,7 +62,9 @@ def mini_sim(seed: int, n_games: int, policy_type: str) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--random-seed", action="store_true",
+                        help="Use a random seed instead of a fixed one")
     parser.add_argument("--heuristic", action="store_true")
     parser.add_argument("--games", type=int, default=1,
                         help="Number of games to trace (default: 1)")
@@ -71,12 +74,19 @@ def main():
                         help="Skip trace, only run mini-sim")
     args = parser.parse_args()
 
+    if args.random_seed:
+        seed = random.randint(0, 999_999)
+    elif args.seed is not None:
+        seed = args.seed
+    else:
+        seed = 42
+
     policy_type = "heuristic" if args.heuristic else "random"
 
     if not args.no_trace:
-        trace_games(args.seed, args.games, policy_type)
+        trace_games(seed, args.games, policy_type)
 
-    mini_sim(args.seed, args.mini, policy_type)
+    mini_sim(seed, args.mini, policy_type)
 
     # Run both policies for a quick comparison
     if not args.no_trace:
@@ -85,7 +95,7 @@ def main():
         print(f"{'='*60}")
         for ptype in ("random", "heuristic"):
             factory = (lambda _r: HeuristicPolicy()) if ptype == "heuristic" else (lambda r: RandomPolicy(r))
-            results = MonteCarloSimulator(factory).run(args.mini, seed=args.seed)
+            results = MonteCarloSimulator(factory).run(args.mini, seed=seed)
             bg = results.wins[0]
             print(f"  {ptype:>10}: black gun {bg}/{args.mini}  ({results.win_rates[0]:.3f})")
 
