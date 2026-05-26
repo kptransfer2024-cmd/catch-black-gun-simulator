@@ -89,3 +89,30 @@ def test_get_legal_moves_empty_when_cannot_beat():
     legal = get_legal_moves(hand, last)
     non_bomb = [c for c in legal if c.type not in (CombType.BOMB, CombType.JOKER_BOMB)]
     assert len(non_bomb) == 0
+
+def _triple(rank):
+    cards = tuple(Card(Rank(rank), s) for s in ('S', 'H', 'D'))
+    return Combination(CombType.TRIPLE, cards, rank)
+
+def _consecutive_pairs(start_rank, num_pairs):
+    cards = []
+    for r in range(start_rank, start_rank + num_pairs):
+        cards.append(Card(Rank(r), 'S'))
+        cards.append(Card(Rank(r), 'H'))
+    return Combination(CombType.CONSECUTIVE_PAIRS, tuple(cards), start_rank + num_pairs - 1)
+
+def test_higher_triple_beats_lower():
+    assert beats(_triple(9), _triple(8))
+
+def test_triple_does_not_beat_pair():
+    assert not beats(_triple(9), _pair(8))
+
+def test_consecutive_pairs_higher_beats_lower_same_length():
+    cp1 = _consecutive_pairs(5, 3)  # 5-6-7 pairs, rank_value=7
+    cp2 = _consecutive_pairs(6, 3)  # 6-7-8 pairs, rank_value=8
+    assert beats(cp2, cp1)
+
+def test_consecutive_pairs_different_length_cannot_beat():
+    cp3 = _consecutive_pairs(5, 3)  # 3 pairs
+    cp4 = _consecutive_pairs(5, 4)  # 4 pairs
+    assert not beats(cp4, cp3)
