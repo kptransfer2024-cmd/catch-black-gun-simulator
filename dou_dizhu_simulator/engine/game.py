@@ -23,7 +23,7 @@ class GameRound:
         first = next(i for i, h in enumerate(hands) if THREE_OF_HEARTS in h)
         return hands, first
 
-    def play(self, policies: List[PlayerPolicy]) -> Tuple[int, int]:
+    def play(self, policies: List[PlayerPolicy], trace: bool = False) -> Tuple[int, int]:
         """Returns (winner_index, total_turns)."""
         hands, current = self.deal_cards()
         last_combo: Optional[Combination] = None
@@ -31,12 +31,27 @@ class GameRound:
         passes = 0
         turns = 0
 
+        if trace:
+            print(f"\n{'-'*60}")
+            print(f"  DEAL")
+            print(f"{'-'*60}")
+            for i, h in enumerate(hands):
+                label = " [BLACK GUN]" if i == 0 else ""
+                sorted_hand = sorted(h, key=lambda c: int(c.rank))
+                print(f"  P{i}{label}: {sorted_hand}")
+            print(f"  First player: P{current}")
+
         while True:
             hand = hands[current]
-
             legal = get_legal_moves(hand, last_combo)
-
             move = policies[current].choose_move(hand, legal, last_combo)
+
+            if trace:
+                trick_str = f"(trick: {last_combo})" if last_combo else "(free lead)"
+                if move is None:
+                    print(f"  T{turns:>3}  P{current} [{len(hand):>2} cards]  PASS  {trick_str}")
+                else:
+                    print(f"  T{turns:>3}  P{current} [{len(hand):>2} cards]  plays {move.type.name}  {list(move.cards)}  {trick_str}")
 
             if move is None:
                 passes += 1
@@ -53,6 +68,9 @@ class GameRound:
                 passes = 0
 
                 if not hand:
+                    if trace:
+                        label = " (BLACK GUN)" if current == 0 else ""
+                        print(f"\n  >> P{current}{label} wins in {turns} turns")
                     return current, turns
 
             turns += 1
