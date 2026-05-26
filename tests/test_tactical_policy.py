@@ -76,3 +76,69 @@ def test_lead_normal_behavior_inherited():
     legal = get_legal_moves(hand, None)
     move = TacticalPolicy().choose_move(hand, legal, None)
     assert move.type == CombType.STRAIGHT
+
+
+# ── Danger mode ───────────────────────────────────────────────────────────────
+
+def test_danger_mode_overrides_protection_when_following():
+    # Consec pairs [77,88,99] are all protected; following PAIR[6H,6S]
+    # Without danger mode → PASS; with danger mode (opponent has 2 cards) → plays a pair
+    last = Combination(CombType.PAIR, (card(6,'H'), card(6,'S')), 6)
+    hand = [card(7,'H'), card(7,'S'), card(8,'D'), card(8,'C'),
+            card(9,'H'), card(9,'D'), card(3,'C')]
+    legal = get_legal_moves(hand, last)
+
+    assert TacticalPolicy().choose_move(hand, legal, last, [15, 15]) is None
+    move = TacticalPolicy().choose_move(hand, legal, last, [2, 15])
+    assert move is not None
+    assert move.type == CombType.PAIR
+
+
+def test_danger_mode_uses_bomb_when_following():
+    # Only a JOKER_BOMB can beat opponent's BOMB; normally saves bombs
+    # In danger mode: plays the joker bomb
+    from dou_dizhu_simulator.game.card import Card, Rank
+    sj = Card(Rank.SMALL_JOKER, 'J')
+    bj = Card(Rank.BIG_JOKER, 'J')
+    last = Combination(CombType.BOMB,
+        (card(9,'H'), card(9,'S'), card(9,'C'), card(9,'D')), 9)
+    hand = [sj, bj, card(3,'H'), card(4,'S'), card(5,'C'), card(6,'D')]
+    legal = get_legal_moves(hand, last)
+
+    assert TacticalPolicy().choose_move(hand, legal, last, [15, 15]) is None
+    move = TacticalPolicy().choose_move(hand, legal, last, [2, 15])
+    assert move is not None
+    assert move.type == CombType.JOKER_BOMB
+
+
+def test_danger_mode_leads_with_bomb():
+    # Free lead; hand has bomb + isolated singles; normally never leads with bomb
+    # In danger mode: max(key=len) picks the 4-card bomb over 1-card singles
+    hand = [card(9,'H'), card(9,'S'), card(9,'C'), card(9,'D'),
+            card(3,'H'), card(5,'C'), card(7,'D')]
+    legal = get_legal_moves(hand, None)
+
+    move_safe = TacticalPolicy().choose_move(hand, legal, None, [15, 15])
+    assert move_safe.type != CombType.BOMB
+
+    move_danger = TacticalPolicy().choose_move(hand, legal, None, [3, 15])
+    assert move_danger.type == CombType.BOMB
+
+
+def test_danger_mode_inactive_without_sizes():
+    # When opponent_hand_sizes is None, no danger mode — same as ComboAwarePolicy
+    last = Combination(CombType.PAIR, (card(6,'H'), card(6,'S')), 6)
+    hand = [card(7,'H'), card(7,'S'), card(8,'D'), card(8,'C'),
+            card(9,'H'), card(9,'D'), card(3,'C')]
+    legal = get_legal_moves(hand, last)
+    assert TacticalPolicy().choose_move(hand, legal, last) is None
+
+
+def test_danger_threshold_boundary():
+    # Opponent with exactly 4 cards does NOT trigger danger; exactly 3 does
+    last = Combination(CombType.PAIR, (card(6,'H'), card(6,'S')), 6)
+    hand = [card(7,'H'), card(7,'S'), card(8,'D'), card(8,'C'),
+            card(9,'H'), card(9,'D'), card(3,'C')]
+    legal = get_legal_moves(hand, last)
+    assert TacticalPolicy().choose_move(hand, legal, last, [4, 15]) is None
+    assert TacticalPolicy().choose_move(hand, legal, last, [3, 15]) is not None
