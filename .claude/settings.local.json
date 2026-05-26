@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(python3 --version 2>&1)"
+      "PowerShell(python3 --version 2>&1)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(py *)",
+      "PowerShell(& \"C:\\\\Users\\\\KPdesktop\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python313\\\\python.exe\" -m pytest --version)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\KPdesktop\\\\Desktop\\\\catch_black_gun\" -File | Where-Object {$_.Name -match \"requirements|setup|pyproject\"})",
+      "PowerShell(python -c \"import scipy; print\\('scipy ok'\\)\" 2>&1)",
+      "PowerShell(python3 -c \"import scipy; print\\('scipy ok'\\)\")",
+      "PowerShell(python --version)"
     ]
   }
 }
