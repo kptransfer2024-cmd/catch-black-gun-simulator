@@ -90,3 +90,13 @@ def test_combination_cards_are_tuple():
     hand = _cards([(5,'S')])
     combos = get_all_combinations(hand)
     assert isinstance(combos[0].cards, tuple)
+
+def test_straight_multiple_from_6_consecutive_cards():
+    # With 3,4,5,6,7,8 a player can form three valid straights:
+    # (3,4,5,6,7), (4,5,6,7,8), and (3,4,5,6,7,8)
+    hand = _cards([(3,'S'),(4,'H'),(5,'D'),(6,'C'),(7,'S'),(8,'H')])
+    combos = get_all_combinations(hand)
+    straights = [c for c in combos if c.type == CombType.STRAIGHT]
+    assert len(straights) == 3
+    lengths = sorted(len(c.cards) for c in straights)
+    assert lengths == [5, 5, 6]
